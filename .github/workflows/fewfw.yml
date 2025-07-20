@@ -58,7 +58,8 @@ jobs:
             -DSKIA_DIR="$SKIA_DIR" \
             -DSKIA_LIBRARY_DIR="$SKIA_LIBRARY_DIR" \
             -DSKIA_LIBRARY="$SKIA_LIBRARY" \
-            -DCMAKE_INSTALL_PREFIX=$(cygpath -m "${GITHUB_WORKSPACE}/install") ..
+            -DCMAKE_INSTALL_PREFIX=$(cygpath -m "${GITHUB_WORKSPACE}/install") \
+            -DENABLE_UPDATER=OFF ..
           ninja
           ninja install
 
