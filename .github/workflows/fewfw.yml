@@ -8,12 +8,6 @@ jobs:
     name: Build Aseprite from Source
     runs-on: windows-latest
 
-    env:
-      DEPOT_TOOLS_WIN_TOOLCHAIN: 0
-      SKIA_DIR: C:\deps\skia
-      DEPOT_TOOLS: C:\deps\depot_tools
-      PATH: C:\deps\depot_tools;C:\Program Files\CMake\bin;${{ env.PATH }}
-
     steps:
     - name: Checkout Aseprite Source
       uses: actions/checkout@v3
@@ -23,17 +17,13 @@ jobs:
     - name: Create Required Directories
       run: |
         mkdir C:\deps
-        mkdir C:\deps\skia
         mkdir C:\aseprite\build
 
     - name: Download and Extract Depot Tools
       run: |
         curl -L -o depot_tools.zip https://storage.googleapis.com/chrome-infra/depot_tools.zip
         tar -xf depot_tools.zip -C C:\deps
-      shell: powershell
-
-    - name: Add Depot Tools to PATH
-      run: echo C:\deps\depot_tools >> $env:GITHUB_PATH
+        echo "C:\deps\depot_tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       shell: powershell
 
     - name: Clone Skia
@@ -68,8 +58,8 @@ jobs:
         ninja aseprite
       shell: cmd
 
-    - name: Upload Compiled Aseprite
+    - name: Upload Full bin/ Folder
       uses: actions/upload-artifact@v3
       with:
-        name: aseprite.exe
-        path: C:\aseprite\build\bin\aseprite.exe
+        name: aseprite-bin
+        path: C:\aseprite\build\bin\
