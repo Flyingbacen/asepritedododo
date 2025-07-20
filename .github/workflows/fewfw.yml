@@ -47,16 +47,16 @@ jobs:
       - name: Build Aseprite with Skia
         shell: msys2 {0}
         env:
-          SKIA_DIR: ${{ github.workspace }}\\skia
+          SKIA_DIR: ${{ github.workspace }}/skia
         run: |
           mkdir build
           cd build
-          cmake -G Ninja ^
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
-            -DLAF_BACKEND=skia ^
-            -DSKIA_DIR="${SKIA_DIR}" ^
-            -DSKIA_LIBRARY_DIR="${SKIA_DIR}/out/Release-x64" ^
-            -DSKIA_LIBRARY="${SKIA_DIR}/out/Release-x64/skia.lib" ^
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DLAF_BACKEND=skia \
+            -DSKIA_DIR="$SKIA_DIR" \
+            -DSKIA_LIBRARY_DIR="$SKIA_DIR/out/Release-x64" \
+            -DSKIA_LIBRARY="$SKIA_DIR/out/Release-x64/skia.lib" \
             -DCMAKE_INSTALL_PREFIX=../install ..
           ninja
           ninja install
