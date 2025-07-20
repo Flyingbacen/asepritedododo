@@ -42,22 +42,23 @@ jobs:
         run: |
           curl -L -o Skia-Windows-Release-x64.zip https://github.com/aseprite/skia/releases/download/m124-08a5439a6b/Skia-Windows-Release-x64.zip
           mkdir skia
-          tar -xf Skia-Windows-Release-x64.zip -C skia --strip-components=1
+          unzip -q Skia-Windows-Release-x64.zip -d skia
 
       - name: Build Aseprite with Skia
         shell: msys2 {0}
-        env:
-          SKIA_DIR: ${{ github.workspace }}/skia
         run: |
+          SKIA_DIR="$(cygpath -m "${GITHUB_WORKSPACE}/skia")"
+          SKIA_LIBRARY_DIR="$SKIA_DIR/out/Release-x64"
+          SKIA_LIBRARY="$SKIA_LIBRARY_DIR/skia.lib"
           mkdir build
           cd build
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DLAF_BACKEND=skia \
             -DSKIA_DIR="$SKIA_DIR" \
-            -DSKIA_LIBRARY_DIR="$SKIA_DIR/out/Release-x64" \
-            -DSKIA_LIBRARY="$SKIA_DIR/out/Release-x64/skia.lib" \
-            -DCMAKE_INSTALL_PREFIX=../install ..
+            -DSKIA_LIBRARY_DIR="$SKIA_LIBRARY_DIR" \
+            -DSKIA_LIBRARY="$SKIA_LIBRARY" \
+            -DCMAKE_INSTALL_PREFIX=$(cygpath -m "${GITHUB_WORKSPACE}/install") ..
           ninja
           ninja install
 
