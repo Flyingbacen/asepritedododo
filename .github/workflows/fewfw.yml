@@ -59,7 +59,11 @@ jobs:
       shell: cmd
 
     - name: Upload Full bin/ Folder
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: aseprite-bin
         path: C:\aseprite\build\bin\
+        include-hidden-files: false    # optional: set to true if you need hidden files
+        compression-level: 0           # optional: 0 for faster upload of binary
+        overwrite: true                # optional: overwrite existing artifact with same name
+
