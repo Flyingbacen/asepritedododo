@@ -1,0 +1,75 @@
+name: Build Aseprite with Skia (Windows)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Aseprite from Source
+    runs-on: windows-latest
+
+    env:
+      DEPOT_TOOLS_WIN_TOOLCHAIN: 0
+      SKIA_DIR: C:\deps\skia
+      DEPOT_TOOLS: C:\deps\depot_tools
+      PATH: C:\deps\depot_tools;C:\Program Files\CMake\bin;${{ env.PATH }}
+
+    steps:
+    - name: Checkout Aseprite Source
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Create Required Directories
+      run: |
+        mkdir C:\deps
+        mkdir C:\deps\skia
+        mkdir C:\aseprite\build
+
+    - name: Download and Extract Depot Tools
+      run: |
+        curl -L -o depot_tools.zip https://storage.googleapis.com/chrome-infra/depot_tools.zip
+        tar -xf depot_tools.zip -C C:\deps
+      shell: powershell
+
+    - name: Add Depot Tools to PATH
+      run: echo C:\deps\depot_tools >> $env:GITHUB_PATH
+      shell: powershell
+
+    - name: Clone Skia
+      run: |
+        cd C:\deps
+        git clone https://github.com/google/skia.git
+        cd skia
+        python tools\git-sync-deps
+      shell: cmd
+
+    - name: Build Skia
+      run: |
+        cd C:\deps\skia
+        bin\gn gen out\Release-x86 --args="is_official_build=true is_component_build=false is_debug=false skia_use_dng_sdk=false skia_use_libheif=false skia_use_libjpeg_turbo_encode=true skia_use_libjpeg_turbo_decode=true skia_use_libpng=true skia_use_libwebp=false skia_use_expat=true skia_use_zlib=true skia_enable_skottie=false target_cpu=\"x86\""
+        ninja -C out\Release-x86
+      shell: cmd
+
+    - name: Configure Aseprite with Skia
+      run: |
+        cd C:\aseprite\build
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+              -DLAF_BACKEND=skia `
+              -DSKIA_DIR=C:\deps\skia `
+              -DSKIA_LIBRARY_DIR=C:\deps\skia\out\Release-x86 `
+              -DSKIA_LIBRARY=skia.lib `
+              -G Ninja ..
+      shell: powershell
+
+    - name: Build Aseprite
+      run: |
+        cd C:\aseprite\build
+        ninja aseprite
+      shell: cmd
+
+    - name: Upload Compiled Aseprite
+      uses: actions/upload-artifact@v3
+      with:
+        name: aseprite.exe
+        path: C:\aseprite\build\bin\aseprite.exe
