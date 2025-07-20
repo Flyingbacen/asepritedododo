@@ -1,69 +1,55 @@
-name: Build Aseprite with Skia (Windows)
+name: Build and Upload Aseprite (Windows)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   build:
-    name: Build Aseprite from Source
     runs-on: windows-latest
 
     steps:
-    - name: Checkout Aseprite Source
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Create Required Directories
-      run: |
-        mkdir C:\deps
-        mkdir C:\aseprite\build
+      - name: Install MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-libjpeg-turbo
+            mingw-w64-x86_64-giflib
+            mingw-w64-x86_64-libwebp
+            mingw-w64-x86_64-freetype
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-expat
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-zlib
 
-    - name: Download and Extract Depot Tools
-      run: |
-        curl -L -o depot_tools.zip https://storage.googleapis.com/chrome-infra/depot_tools.zip
-        tar -xf depot_tools.zip -C C:\deps
-        echo "C:\deps\depot_tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      shell: powershell
+      - name: Build Aseprite
+        shell: msys2 {0}
+        run: |
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLAF_BACKEND=skia -DCMAKE_INSTALL_PREFIX=../install ..
+          ninja
+          ninja install
 
-    - name: Clone Skia
-      run: |
-        cd C:\deps
-        git clone https://github.com/google/skia.git
-        cd skia
-        python tools\git-sync-deps
-      shell: cmd
+      - name: Archive build output
+        run: |
+          Compress-Archive -Path install\* -DestinationPath aseprite-windows.zip
 
-    - name: Build Skia
-      run: |
-        cd C:\deps\skia
-        bin\gn gen out\Release-x86 --args="is_official_build=true is_component_build=false is_debug=false skia_use_dng_sdk=false skia_use_libheif=false skia_use_libjpeg_turbo_encode=true skia_use_libjpeg_turbo_decode=true skia_use_libpng=true skia_use_libwebp=false skia_use_expat=true skia_use_zlib=true skia_enable_skottie=false target_cpu=\"x86\""
-        ninja -C out\Release-x86
-      shell: cmd
-
-    - name: Configure Aseprite with Skia
-      run: |
-        cd C:\aseprite\build
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-              -DLAF_BACKEND=skia `
-              -DSKIA_DIR=C:\deps\skia `
-              -DSKIA_LIBRARY_DIR=C:\deps\skia\out\Release-x86 `
-              -DSKIA_LIBRARY=skia.lib `
-              -G Ninja ..
-      shell: powershell
-
-    - name: Build Aseprite
-      run: |
-        cd C:\aseprite\build
-        ninja aseprite
-      shell: cmd
-
-    - name: Upload Full bin/ Folder
-      uses: actions/upload-artifact@v4
-      with:
-        name: aseprite-bin
-        path: C:\aseprite\build\bin\
-        include-hidden-files: false    # optional: set to true if you need hidden files
-        compression-level: 0           # optional: 0 for faster upload of binary
-        overwrite: true                # optional: overwrite existing artifact with same name
-
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aseprite-windows
+          path: aseprite-windows.zip
